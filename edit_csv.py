@@ -575,6 +575,9 @@ if __name__ == '__main__':
     else:
         filename = sys.argv[1]
 
+    if filename == '':
+        sys.exit()
+
     mdata = MeasurementsData(filename)
 
     w = TopLevelWidget(model=mdata)
