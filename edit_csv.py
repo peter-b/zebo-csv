@@ -177,35 +177,45 @@ class MeasurementsData(QtCore.QObject):
 
         return self.table[row_idx][col_idx]
 
-    def set_measurement(self, path, key, value, partial=False, emit=True):
-
-        if partial:
-            for sub_path in self.paths_with_prefix(path):
-                self.set_measurement(sub_path, key, value, emit=False)
-
-            self.dirty = True
-            self.dataChanged.emit()
-            return
-
-        print("{} - {} - {}".format(path, key, value))
+    def set_measurement(self, path, key, value, partial=False):
 
         self._lazy_load()
 
-        row_idx = self._get_row_index(path)
+        def row_indices(pmap=None, path=None):
+
+            assert path is not None
+
+            if pmap is None:
+                print("{} - {} - {}".format(path, key, value))
+                pmap = self._eval_path_map(path)
+                if not partial:
+                    assert pmap.get('_index_') is not None
+
+            if pmap.has_key('_index_'):
+                yield (path, pmap['_index_'])
+            else:
+                for k in pmap.iterkeys():
+                    sub_path = path + [k]
+                    for pair in row_indices(pmap=pmap[k], path=sub_path):
+                        yield pair
+
         col_idx = self._get_col_index(key)
 
-        assert row_idx is not None
-        assert col_idx is not None
-        assert len(self.table) > row_idx
+        for row_path, row_idx in row_indices(path=path):
 
-        while col_idx >= len(self.table[row_idx]):
-            self.table[row_idx].append('')
+            print("{} - {} - {}".format(row_path, key, value))
 
-        self.table[row_idx][col_idx] = value
+            assert row_idx is not None
+            assert col_idx is not None
+            assert len(self.table) > row_idx
 
-        if emit:
-            self.dirty = True
-            self.dataChanged.emit()
+            while col_idx >= len(self.table[row_idx]):
+                self.table[row_idx].append('')
+
+            self.table[row_idx][col_idx] = value
+
+        self.dirty = True
+        self.dataChanged.emit()
 
     def commit(self):
         self._save()
@@ -474,8 +484,7 @@ class EditorComboBox(QtGui.QComboBox):
 
         if not self.model.validate_path(self.path, partial=False):
             # Multiple rows selected
-            for path in self.model.paths_with_prefix(self.path):
-                self.model.set_measurement(path, self.name, new_value, partial=True)
+            self.model.set_measurement(self.path, self.name, new_value, partial=True)
         else:
             # Single row selected
             self.model.set_measurement(self.path, self.name, new_value)
