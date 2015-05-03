@@ -227,6 +227,39 @@ class MeasurementsData(QtCore.QObject):
     def is_modified(self):
         return self.dirty
 
+    def _path_at_row(self, row_idx):
+        """Get the path corresponding to the specified row of the data table"""
+        row = self.table[row_idx]
+
+        path = []
+        for record in self.metadata_cols:
+            path.append(row[record['idx']])
+        return path
+
+    def path_next(self, path):
+        row_idx = self._get_row_index(path)
+
+        if row_idx is None:
+            return None
+
+        row_idx += 1 # Next row
+        if row_idx >= len(self.table):
+            return None
+
+        return self._path_at_row(row_idx)
+
+    def path_previous(self, path):
+        row_idx = self._get_row_index(path)
+
+        if row_idx is None:
+            return None
+
+        row_idx -= 1 # Previous row
+        if row_idx < 0:
+            return None
+
+        return self._path_at_row(row_idx)
+
 ################################################################
 # User interface
 ################################################################
@@ -273,6 +306,11 @@ class NavigatorComboBox(QtGui.QComboBox):
             path.append(str(self.currentText()))
         return path
 
+    def _depth(self, acc=0):
+        if self.previous is None:
+            return acc
+        return self.previous._depth(acc + 1)
+
     def currentPath(self):
         path = self._full_path()
         if None in path:
@@ -280,8 +318,32 @@ class NavigatorComboBox(QtGui.QComboBox):
         else:
             return path
 
-    def update(self):
-        current_value = str(self.currentText())
+    def setCurrentPath(self, path):
+        # Make sure that the path is full for this level
+        depth = self._depth()
+        full_path = []
+        for i in range(depth+1):
+            if i >= len(path):
+                full_path.append(None)
+            else:
+                full_path.append(path[i])
+
+        # Recurse up to the root first, and let that update, then
+        # cascade back down
+        if self.previous is not None:
+            self.previous.currentIndexChanged.disconnect(self.update)
+            self.previous.setCurrentPath(full_path[:-1])
+            self.previous.currentIndexChanged.connect(self.update)
+
+        # Force update of this element
+        self.update(full_path[-1])
+
+    def update(self, move_to=None):
+        if move_to is not None:
+            current_value = move_to
+        else:
+            current_value = str(self.currentText())
+
         if current_value == '':
             current_value = self.last_value
         self.last_value = current_value
@@ -358,6 +420,9 @@ class NavigatorWidget(QtGui.QWidget):
 
     def currentPath(self):
         return self.comboboxes[-1].currentPath()
+
+    def setCurrentPath(self, path):
+        self.comboboxes[-1].setCurrentPath(path)
 
     def _emit_path_changed(self):
         self.currentPathChanged.emit(self.currentPath())
@@ -546,26 +611,55 @@ class TopLevelWidget(QtGui.QWidget):
         hbox = QtGui.QHBoxLayout()
         vbox.addLayout(hbox, stretch=1)
 
-        navigator = NavigatorWidget(model=self.model)
-        editor = EditorWidget(model=self.model)
+        self.navigator = NavigatorWidget(model=self.model)
+        self.editor = EditorWidget(model=self.model)
 
-        hbox.addWidget(navigator, stretch=1)
-        hbox.addWidget(editor, stretch=2)
+        hbox.addWidget(self.navigator, stretch=1)
+        hbox.addWidget(self.editor, stretch=2)
 
         # Control widgets
         hbox = QtGui.QHBoxLayout()
         vbox.addLayout(hbox)
+
+        self.prev_button = QtGui.QPushButton("Previous")
+        hbox.addWidget(self.prev_button)
+
+        self.next_button = QtGui.QPushButton("Next")
+        hbox.addWidget(self.next_button)
 
         hbox.addStretch(1)
 
         self.save_button = QtGui.QPushButton("Save changes")
         hbox.addWidget(self.save_button)
 
-        navigator.currentPathChanged.connect(editor.setCurrentPath)
+        self.navigator.currentPathChanged.connect(self.editor.setCurrentPath)
+        self.navigator.currentPathChanged.connect(self._update_nav)
 
+        self.prev_button.clicked.connect(self._previous)
+        self.next_button.clicked.connect(self._next)
         self.save_button.clicked.connect(self.model.commit)
 
+    def _previous(self):
+        prev_path = self.model.path_previous(self.navigator.currentPath())
+        if prev_path is None:
+            return
+        self.navigator.setCurrentPath(prev_path)
+
+    def _next(self):
+        next_path = self.model.path_next(self.navigator.currentPath())
+        if next_path is None:
+            return
+        self.navigator.setCurrentPath(next_path)
+
+    def _update_nav(self, path):
+        prev_path = self.model.path_previous(path)
+        self.prev_button.setEnabled(prev_path is not None)
+
+        next_path = self.model.path_next(path)
+        self.next_button.setEnabled(next_path is not None)
+
     def update(self):
+        self._update_nav(self.navigator.currentPath())
         self.save_button.setEnabled(self.model.is_modified())
 
 if __name__ == '__main__':
