@@ -373,9 +373,6 @@ class EditorDisplay(QtGui.QLabel):
         self.name = name
         self.path = []
 
-        # Make sure that if the data changes, this widget gets updated
-        self.model.dataChanged.connect(self.update)
-
         self.update()
 
     def update(self):
@@ -406,6 +403,8 @@ class EditorDisplay(QtGui.QLabel):
             self.setText(self.model.get_measurement(self.path, self.name))
 
     def setCurrentPath(self, path):
+        if path == self.path:
+            return
         self.path = path
         self.update()
 
@@ -423,9 +422,6 @@ class EditorComboBox(QtGui.QComboBox):
 
         self.setEditable(True)
         self.lineEdit().setPlaceholderText(self.NO_VALUE_TEXT)
-
-        # Make sure that if the data changes, this widget gets updated
-        self.model.dataChanged.connect(self.update)
 
         self.update()
 
@@ -476,6 +472,8 @@ class EditorComboBox(QtGui.QComboBox):
             self.editTextChanged.connect(self._update_model)
 
     def setCurrentPath(self, path):
+        if path == self.path:
+            return
         self.path = path
         self.update()
 
