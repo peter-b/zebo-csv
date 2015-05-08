@@ -85,6 +85,9 @@ class MeasurementsData(QtCore.QObject):
 
         self.dirty = False
         print("Loaded from '{}'".format(self.filename))
+        self._emit_data_changed()
+
+    def _emit_data_changed(self):
         self.dataChanged.emit()
 
     def _lazy_load(self):
@@ -214,7 +217,7 @@ class MeasurementsData(QtCore.QObject):
             self.table[row_idx][col_idx] = value
 
         self.dirty = True
-        self.dataChanged.emit()
+        self._emit_data_changed()
 
     def commit(self):
         self._save()
