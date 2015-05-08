@@ -708,3 +708,8 @@ if __name__ == '__main__':
     w = TopLevelWidget(model=mdata)
     w.show()
     sys.exit(app.exec_())
+
+# Local variables:
+# indent-tabs-mode: nil
+# tab-width: 4
+# End:
