@@ -531,6 +531,7 @@ class EditorComboBox(QtGui.QComboBox):
 
         else:
             # Single row selected
+            self.lineEdit().setPlaceholderText(self.NO_VALUE_TEXT)
             self.setEnabled(True)
             self.setEditText(self.model.get_measurement(self.path, self.name))
 
