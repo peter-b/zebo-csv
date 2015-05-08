@@ -581,18 +581,27 @@ class EditorWidget(QtGui.QWidget):
 
         # Create a label and editor combobox for each measurement item
         self.editors = []
-        for idx, name in enumerate(self.model.measurement_keys()):
+
+        all_keys = [(x, self.model.is_measurement_mutable(x))
+                     for x in self.model.measurement_keys()]
+
+        immutable_keys = [x[0] for x in all_keys if not x[1]]
+        for idx, name in enumerate(immutable_keys):
             grid.addWidget(QtGui.QLabel(name.replace("_"," ")), idx, 0)
-
-            if self.model.is_measurement_mutable(name):
-                editor = EditorComboBox(self.model, name)
-            else:
-                editor = EditorDisplay(self.model, name)
-
+            editor = EditorDisplay(self.model, name)
             grid.addWidget(editor, idx, 1)
             self.editors.append(editor)
 
         grid.setColumnStretch(1, 1)
+
+        mutable_keys = [x[0] for x in all_keys if x[1]]
+        for idx, name in enumerate(mutable_keys):
+            grid.addWidget(QtGui.QLabel(name.replace("_"," ")), idx, 2)
+            editor = EditorComboBox(self.model, name)
+            grid.addWidget(editor, idx, 3)
+            self.editors.append(editor)
+
+        grid.setColumnStretch(3, 1)
 
         vbox.addStretch(1)
 
