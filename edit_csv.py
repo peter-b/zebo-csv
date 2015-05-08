@@ -25,6 +25,9 @@ class MeasurementsData(QtCore.QObject):
 
         self.dirty = False
 
+    def get_filename(self):
+        return filename
+
     def _load_header(self, row):
         self.col_titles = row
         self.metadata_cols = []
@@ -665,6 +668,12 @@ class TopLevelWidget(QtGui.QWidget):
         self.next_button.setEnabled(next_path is not None)
 
     def update(self):
+        if self.model.is_modified():
+            title = "{} [modified] - Zebo"
+        else:
+            title = "{} - Zebo"
+        self.setWindowTitle(title.format(self.model.get_filename()))
+
         self._update_nav(self.navigator.currentPath())
         self.save_button.setEnabled(self.model.is_modified())
 
