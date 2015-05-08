@@ -186,7 +186,6 @@ class MeasurementsData(QtCore.QObject):
             assert path is not None
 
             if pmap is None:
-                print("{} - {} - {}".format(path, key, value))
                 pmap = self._eval_path_map(path)
                 if not partial:
                     assert pmap.get('_index_') is not None
