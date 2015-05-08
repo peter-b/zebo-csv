@@ -276,7 +276,7 @@ class NavigatorComboBox(QtGui.QComboBox):
 
         # Make sure that if the previous box changes, this get updated
         if previous is not None:
-            previous.currentIndexChanged.connect(self.update)
+            previous.currentIndexChanged.connect(self._prev_index_changed)
 
         # Make sure that if this gets updated, this widget emits a
         # path change signal
@@ -330,12 +330,15 @@ class NavigatorComboBox(QtGui.QComboBox):
         # Recurse up to the root first, and let that update, then
         # cascade back down
         if self.previous is not None:
-            self.previous.currentIndexChanged.disconnect(self.update)
+            self.previous.currentIndexChanged.disconnect(self._prev_index_changed)
             self.previous.setCurrentPath(full_path[:-1])
-            self.previous.currentIndexChanged.connect(self.update)
+            self.previous.currentIndexChanged.connect(self._prev_index_changed)
 
         # Force update of this element
         self.update(full_path[-1])
+
+    def _prev_index_changed(self):
+        self.update()
 
     def update(self, move_to=None):
         if move_to is not None:
