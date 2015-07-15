@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
-from PyQt4 import QtCore, QtGui
+from PyQt4 import Qt, QtCore, QtGui
 from zebo.measurements import MeasurementsData
 
 ################################################################
@@ -368,11 +368,18 @@ class TopLevelWidget(QtGui.QWidget):
         hbox = QtGui.QHBoxLayout()
         vbox.addLayout(hbox, stretch=1)
 
+        scroller = QtGui.QScrollArea()
+        scroller.setHorizontalScrollBarPolicy(Qt.Qt.ScrollBarAlwaysOff)
+        scroller.setVerticalScrollBarPolicy(Qt.Qt.ScrollBarAsNeeded)
+
         self.navigator = NavigatorWidget(model=self.model)
         self.editor = EditorWidget(model=self.model)
 
+        scroller.setWidget(self.editor)
+        scroller.setWidgetResizable(True)
+
         hbox.addWidget(self.navigator, stretch=1)
-        hbox.addWidget(self.editor, stretch=2)
+        hbox.addWidget(scroller, stretch=2)
 
         # Control widgets
         hbox = QtGui.QHBoxLayout()
